@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pitching Motion Capture</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        button { padding: 10px 20px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { opacity: 0.8; }
+        #startButton { background-color: #28a745; color: white; }
+        #stopButton { background-color: #dc3545; color: white; }
+        #generateGraph, #downloadGraph { background-color: #007bff; color: white; display: none; }
+        img { max-width: 100%; height: auto; margin-top: 20px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pitching Motion Capture</h1>
+        <button id="startButton" onclick="startVideo()">Start Video</button>
+        <button id="stopButton" onclick="stopVideo()">Stop Video</button>
+        <button id="generateGraph" onclick="generateGraph()">Generate Velocity Graph</button>
+        <br><br>
+        <img id="videoFeed" src="" alt="Video Feed">
+        <br><br>
+        <img id="velocityGraph" src="" alt="Velocity Graph">
+        <br>
+        <a id="downloadGraph" href="#" download="velocity_graph.png">Download Graph</a>
+    </div>
+
+    <script>
+        function startVideo() {
+            document.getElementById('videoFeed').src = "/video_feed";
+        }
+
+        function stopVideo() {
+            document.getElementById('videoFeed').src = "";
+            document.getElementById('generateGraph').style.display = "block";
+        }
+
+        function generateGraph() {
+            fetch('/generate_velocity_graph', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.graph_url) {
+                    document.getElementById('velocityGraph').src = data.graph_url;
+                    document.getElementById('downloadGraph').href = data.graph_url;
+                    document.getElementById('downloadGraph').style.display = "block";
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
+
