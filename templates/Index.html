@@ -13,6 +13,7 @@
         #stopButton { background-color: #dc3545; color: white; }
         #generateGraph, #downloadGraph { background-color: #007bff; color: white; display: none; }
         img { max-width: 100%; height: auto; margin-top: 20px; border-radius: 5px; }
+        #statusMessage { margin-top: 10px; min-height: 20px; color: #333; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -27,31 +28,64 @@
         <img id="velocityGraph" src="" alt="Velocity Graph">
         <br>
         <a id="downloadGraph" href="#" download="velocity_graph.png">Download Graph</a>
+        <div id="statusMessage"></div>
     </div>
 
     <script>
+        function setStatus(message, isError = false) {
+            const status = document.getElementById('statusMessage');
+            status.textContent = message;
+            status.style.color = isError ? '#dc3545' : '#333';
+        }
+
         function startVideo() {
+            fetch('/reset_session', { method: 'POST' }).catch(error => console.error('Reset failed:', error));
             document.getElementById('videoFeed').src = "/video_feed";
+            document.getElementById('generateGraph').style.display = "none";
+            document.getElementById('downloadGraph').style.display = "none";
+            document.getElementById('velocityGraph').src = "";
+            document.getElementById('startButton').disabled = true;
+            setStatus("Streaming started. Perform your motion, then press Stop.");
         }
 
         function stopVideo() {
             document.getElementById('videoFeed').src = "";
-            document.getElementById('generateGraph').style.display = "block";
+            fetch('/stop_video', { method: 'POST' })
+            .then(async (response) => {
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Unable to stop video stream.');
+                }
+                document.getElementById('generateGraph').style.display = "block";
+                document.getElementById('startButton').disabled = false;
+                setStatus("Streaming stopped. Generate your graph.");
+            })
+            .catch(error => {
+                setStatus(error.message, true);
+            });
         }
 
         function generateGraph() {
             fetch('/generate_velocity_graph', { method: 'POST' })
-            .then(response => response.json())
+            .then(async (response) => {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Unable to generate graph.');
+                }
+                return data;
+            })
             .then(data => {
                 if (data.graph_url) {
                     document.getElementById('velocityGraph').src = data.graph_url;
                     document.getElementById('downloadGraph').href = data.graph_url;
                     document.getElementById('downloadGraph').style.display = "block";
+                    setStatus("Graph generated successfully.");
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                setStatus(error.message, true);
+            });
         }
     </script>
 </body>
 </html>
-
